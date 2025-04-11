@@ -4,3 +4,4 @@ venv/
 env/
 .idea/
 .py[co]
+rnoise.pyd
