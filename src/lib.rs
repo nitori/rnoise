@@ -183,10 +183,7 @@ fn noise_img(width: usize, height: usize, settings: NoiseSettings) -> Result<Vec
         let mut row = vec![];
         for x in 0..width {
             let mut c = vec![x as f64, y as f64];
-            for coord in settings.coords.iter().copied() {
-                c.push(coord);
-            }
-
+            c.extend(settings.coords.iter());
             let val = noise(NoiseSettings {
                 coords: c,
                 ..settings
