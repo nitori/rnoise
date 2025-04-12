@@ -107,7 +107,7 @@ def main():
                 frames.append(frame)
             except KeyboardInterrupt:
                 break
-        print(f'\r{progress * 100:.1f}% ({frame_no + 1}/{number_of_frames})')
+        print(f'\r100.0% ({frame_no + 1}/{number_of_frames})')
 
     frames[0].save('output.gif', save_all=True, append_images=frames[1:], duration=20, loop=0)
 
