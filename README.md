@@ -3,4 +3,4 @@ package.
 
 Sample:
 
-![sample.gif](sample.gif)
+![](sample.gif)
