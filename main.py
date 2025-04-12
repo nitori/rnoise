@@ -75,37 +75,39 @@ def create_image_rust(
     data = rust_perlin.noise_img(width, height, coords or [], freq, octaves, persistence, lacunarity)
     data = np.array(data)
 
-    new_data = np.zeros_like(data, dtype='uint8')
+    new_data = np.zeros((width, height, 3), dtype='uint8')
 
-    new_data[data > 0] = 255
-    new_data[data <= 0] = 0
+    new_data[data > 0] = (0, 128, 0)
+    new_data[data <= 0] = (0, 0, 128)
 
-    return Image.fromarray(new_data, 'L')
+    return Image.fromarray(new_data, 'RGB')
 
 
 def main():
-    freq = 1 / 128
+    freq = 1 / 64
     octaves = 6
     persistence = 0.5
     lacunarity = 2.0
 
-    stretch = 5.0
+    stretch = 15.0
 
-    print('starting rust...')
     with timed('Rust'):
         frames = []
-        number_of_frames = 50
+        number_of_frames = 500
 
         for frame_no in range(number_of_frames):
-            progress = frame_no / number_of_frames
-            print(f'\r{progress * 100:.1f}%', end='')
+            try:
+                progress = frame_no / number_of_frames
+                print(f'\r{progress * 100:.1f}% ({frame_no + 1}/{number_of_frames})', end='')
 
-            r = progress * math.pi * 2
-            w, z = math.cos(r) * stretch, math.sin(r) * stretch
+                r = progress * math.pi * 2
+                w, z = math.cos(r) * stretch, math.sin(r) * stretch
 
-            frame = create_image_rust(100, 100, [w, z], freq, octaves, persistence, lacunarity)
-            frames.append(frame)
-        print('\r100%  ')
+                frame = create_image_rust(100, 100, [w, z], freq, octaves, persistence, lacunarity)
+                frames.append(frame)
+            except KeyboardInterrupt:
+                break
+        print(f'\r{progress * 100:.1f}% ({frame_no + 1}/{number_of_frames})')
 
     frames[0].save('output.gif', save_all=True, append_images=frames[1:], duration=20, loop=0)
 
