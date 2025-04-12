@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pyo3::exceptions::{PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rand::distr::{Distribution, Uniform};
 use rand::prelude::*;
@@ -177,10 +177,9 @@ fn noise(settings: NoiseSettings) -> Result<f64> {
 }
 
 fn noise_img(width: usize, height: usize, settings: NoiseSettings) -> Result<Vec<Vec<f64>>> {
-    let mut result = vec![];
+    let mut result = vec![vec![0f64; width]; height];
 
     for y in 0..height {
-        let mut row = vec![];
         for x in 0..width {
             let mut c = vec![x as f64, y as f64];
             c.extend(settings.coords.iter());
@@ -188,9 +187,8 @@ fn noise_img(width: usize, height: usize, settings: NoiseSettings) -> Result<Vec
                 coords: c,
                 ..settings
             })?;
-            row.push(val);
+            result[y][x] = val;
         }
-        result.push(row);
     }
 
     Ok(result)
