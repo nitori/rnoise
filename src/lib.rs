@@ -104,29 +104,83 @@ fn hasher(coords: &Vec<f64>) -> PyResult<u64> {
 #[pyclass]
 struct Perlin {
     seed: u64,
-    octaves: u32,
 }
 
 #[pymethods]
 impl Perlin {
     #[new]
-    #[pyo3(signature = (seed, octaves=1))]
-    fn new(seed: u64, octaves: u32) -> Self {
-        Self { seed, octaves }
+    #[pyo3(signature = (seed))]
+    fn new(seed: u64) -> Self {
+        Self { seed }
     }
 
-    fn noise(&self, coords: Vec<f64>) -> PyResult<f64> {
+    #[pyo3(signature = (coords, freq=1.0, octaves=1, persistence=1.0, lacunarity=1.0))]
+    fn noise(
+        &self,
+        coords: Vec<f64>,
+        freq: f64,
+        octaves: u32,
+        persistence: f64,
+        lacunarity: f64,
+    ) -> PyResult<f64> {
         if coords.len() == 0 {
             return Err(PyTypeError::new_err(
                 "Cannot create noise with empty coordinates.",
             ));
         }
 
-        let coords = coords
-            .iter()
-            .map(|val| val * self.octaves as f64)
-            .collect::<Vec<f64>>();
+        let mut total = 0f64;
+        let mut amplitude = 1f64;
+        let mut total_amplitude = 1f64;
+        let mut _freq = freq;
 
+        for _ in 0..octaves {
+            total += self.raw_noise(coords.iter().map(|v| v * _freq).collect())? * amplitude;
+            total_amplitude += amplitude;
+            amplitude *= persistence;
+            _freq *= lacunarity;
+        }
+
+        Ok(total / total_amplitude)
+    }
+
+    #[pyo3(signature = (width, height, coords, freq=1.0, octaves=1, persistence=1.0, lacunarity=1.0))]
+    fn noise_img(
+        &self,
+        width: u32,
+        height: u32,
+        coords: Vec<f64>,
+        freq: f64,
+        octaves: u32,
+        persistence: f64,
+        lacunarity: f64,
+    ) -> PyResult<Vec<Vec<f64>>> {
+        let mut result = vec![];
+
+        for y in 0..height {
+            let mut row = vec![];
+            for x in 0..width {
+                let mut c = vec![x as f64, y as f64];
+                for coord in coords.iter().copied() {
+                    c.push(coord);
+                }
+
+                let val = self.noise(
+                    c,
+                    freq,
+                    octaves,
+                    persistence,
+                    lacunarity,
+                )?;
+                row.push(val);
+            }
+            result.push(row);
+        }
+
+        Ok(result)
+    }
+
+    fn raw_noise(&self, coords: Vec<f64>) -> PyResult<f64> {
         let coor_bounding_box = coords
             .iter()
             .map(|val| (val.floor(), (val + 1.0).floor()))
