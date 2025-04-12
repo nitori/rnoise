@@ -3,6 +3,8 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rand::distr::{Distribution, Uniform};
 use rand::prelude::*;
+use std::sync::mpsc::channel;
+use threadpool::ThreadPool;
 
 // fn get_cpu_count() -> PyResult<usize> {
 //     Python::with_gil(|py| -> PyResult<usize> {
@@ -13,6 +15,7 @@ use rand::prelude::*;
 //     })
 // }
 
+#[derive(Debug)]
 enum NoiseError {
     ValueError(String),
 }
@@ -177,20 +180,33 @@ fn noise(settings: NoiseSettings) -> Result<f64> {
 }
 
 fn noise_img(width: usize, height: usize, settings: NoiseSettings) -> Result<Vec<Vec<f64>>> {
-    let mut result = vec![vec![0f64; width]; height];
+    let pool = ThreadPool::new(8);
+    let (tx, rx) = channel();
 
     for y in 0..height {
         for x in 0..width {
             let mut c = vec![x as f64, y as f64];
             c.extend(settings.coords.iter());
-            let val = noise(NoiseSettings {
+            let clone_settings = NoiseSettings {
                 coords: c,
                 ..settings
-            })?;
-            result[y][x] = val;
+            };
+
+            let tx2 = tx.clone();
+            pool.execute(move || {
+                let val = noise(clone_settings);
+                tx2.send((x, y, val)).expect("test?");
+            });
         }
     }
 
+    let mut result = vec![vec![0f64; width]; height];
+    for (i, (x, y, val)) in rx.iter().enumerate() {
+        result[y][x] = val?;
+        if i == width * height - 1 {
+            break;
+        }
+    }
     Ok(result)
 }
 
